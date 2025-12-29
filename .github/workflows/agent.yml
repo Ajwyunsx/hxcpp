@@ -1,0 +1,46 @@
+name: AI Auto Repair (Third Party API)
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  ai-fix:
+    if: github.event.label.name == 'ai-fix'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Python & Aider
+        run: pip install aider-chat
+
+      - name: Run AI Agent
+        env:
+          OPENAI_API_BASE: ${{ secrets.ANY_API_BASE_URL }} 
+          OPENAI_API_KEY: ${{ secrets.ANY_API_KEY }}
+          MAX_ITERATIONS: 3
+        run: |
+          ITERATION=0
+          while [ $ITERATION -lt $MAX_ITERATIONS ]; do
+            ITERATION=$((ITERATION+1))
+
+            aider --model "openai/claude-opus-4-5-thinking" \
+                  --message "修复 Issue: ${{ github.event.issue.title }}" \
+                  --yes-always \
+                  --no-auto-commits
+
+            if npm test; then
+              break
+            fi
+          done
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "AI Agent fix (via Third-party API)"
+          title: "AI Fix: ${{ github.event.issue.title }}"
+          branch: "ai-fix-agent"

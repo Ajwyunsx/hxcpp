@@ -1,0 +1,4 @@
+.github/workflows/ 
+secrets.json
+auth/
+*.log
